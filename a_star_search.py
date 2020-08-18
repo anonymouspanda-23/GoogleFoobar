@@ -52,9 +52,6 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
     max_iter = (n_rows * n_cols) ** 2  # maybe max_iter can be reduced to (n_rows ** n_cols)
     current_iter = 0
 
-    # declare the maximum allowable length if not break (number of tiles)
-    max_path_len = n_cols * n_rows
-
     # initialize start and end nodes
     start_node = Node(None, start_pos)
     start_node.g = start_node.h = start_node.f = 0
@@ -79,15 +76,13 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
     # while nodes available in open_list to expand
     while open_list:
-        # input("Press enter to continue.")
         
         # get 1 node from list
-        # todo: add check that node is not in closed_list
         current_node = open_list[0]
         current_index = 0
 
         # check if current iteration has reached iteration limit
-        if current_iter >= max_iter or max_path_len <= 0:
+        if current_iter >= max_iter:
             return return_path(False, current_node)
 
         # increment current iteration
@@ -105,20 +100,6 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
         # remove current node from open_list and add it to closed_list
         open_list.pop(current_index)
         closed_list.append(current_node)
-
-        # remove all nodes in open_list with f length greater than max_path_len
-        to_remove = []
-        
-        # for node in open_list:
-        #     if node.f > max_path_len:
-        #         to_remove.append(node)
-
-        # for node in to_remove:
-        #     open_list.remove(node)
-        #     closed_list.append(node)
-
-        # update max_path_len
-        # max_path_len -= 1
 
         # create list to store new valid nodes expanded from current node
         children = []
@@ -154,11 +135,6 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
             child_node.h = abs((end_node.position[0] - child_node.position[0]) + (end_node.position[1] - child_node.position[1]))
             child_node.f = child_node.g + child_node.h
 
-            # check if child_node exists in open_list and if it does, check if it is more efficient going this way
-            # for index, node in enumerate(open_list):
-            #     if child_node == node and child_node.g < node.g:
-            #         open_list.pop(index)
-
             for node in open_list:
                 if child_node == node and child_node.g < node.g:
                     node.g = child_node.g
@@ -169,6 +145,7 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
             if child_node not in open_list:
                 open_list.append(child_node)
+
     return return_path(False, current_node)
 
 
@@ -215,7 +192,8 @@ def test_algorithm(maze):
     print(f"End Point: {tuple(end_pos)}.")
 
     start_time = time.time()
-    solvable, resultant_path = destroy_wall(maze)  # change func to (not) remove wall
+    # solvable, resultant_path = a_star_search(maze)  # function to search without removing a wall
+    solvable, resultant_path = destroy_wall(maze)  # function to search with ability to remove 1 wall
     end_time = time.time()
 
     print(f"Time taken to execute: {end_time - start_time}s")
