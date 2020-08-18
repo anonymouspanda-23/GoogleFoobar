@@ -9,6 +9,8 @@ Sample Prison Layout:
 | 2  5  9  14 20
 | 1  3  6  10 15
 
+Note: Prison is in triangle shape
+
 """
 
 
