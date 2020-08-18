@@ -1,31 +1,9 @@
-"""
-
-Sample Maze:
-
-0 - Clear path
-1 - Wall
-
-[[0, 1, 1, 0],
- [0, 0, 0, 1],
- [1, 1, 0, 0],
- [1, 1, 1, 0]]
-
-Start Index: 0, 0
-End Index: len(maze) - 1, len(maze[0]) - 1
-"""
+import copy
+import time
 
 
 class Node:
-    """
-    A node class for A* pathfinding
-    Parent refers to the parent of the current node
-    Position refers to the current position of the node in the maze
-    g is the cost from the start to the current node
-    h is the heuristic based estimated cost from the current node to the end node
-    f is the total cost of the current node i.e. f = g + h
-    """
-
-    def __init__(self, parent=None, position=None):
+    def __init__(self, parent, position):
         self.parent = parent
         self.position = position
 
@@ -37,146 +15,296 @@ class Node:
         return self.position == other.position
 
 
-# function returns the optimal path
-def return_path(current_node, maze):
-    path = []
-    n_rows, n_columns = len(maze), len(maze[0])
-    # initialize maze with -1 in every accessible position
-    result = [[-1 for i in range(n_columns)] for j in range(n_rows)]
-    current = current_node
-    while current is not None:
-        path.append(current.position)
-        current = current.parent
-    # return reversed path as we need to show from start to end
-    path = path[::-1]
-    start_value = 0
-    # update the path of start to end found by A* search with every step incremented by 1
-    for i in range(len(path)):
-        result[path[i][0]][path[i][1]] = start_value
-        start_value += 1
-    return result
+def search(maze):
+    open_list = list()  # list to store nodes to be expanded
+    closed_list = list()  # list to store nodes which had been expanded
 
+    n_rows = len(maze)
+    n_cols = len(maze[0])
 
-def search(maze, cost, start, end):
-    """
-    Returns a list of tuples as a path from the given start to the given end in the given maze
-    :param maze:
-    :param cost:
-    :param start:
-    :param end:
-    :return:
-    """
+    start = [0, 0]
+    end = [n_rows - 1, n_cols - 1]
 
-    # create start and end node with initialized values for g, h and f
+    remaining_iterations = (len(maze) // 2) ** 5
+
+    num_dead_ends = 0
+    max_num_dead_ends = len(maze)
+
     start_node = Node(None, tuple(start))
     start_node.g = start_node.h = start_node.f = 0
+
     end_node = Node(None, tuple(end))
     end_node.g = end_node.h = end_node.f = 0
 
-    # initialize both yet_to_visit and visited list
-    # in this list, we put all nodes that have not yet been visited for exploration
-    # from here, we will find the lowest cost node to expand to next
-    yet_to_visit_list = []
-    # in this list, we put all nodes that have already been visited so we don't visit them again
-    visited_list = []
-    # add start node
-    yet_to_visit_list.append(start_node)
+    open_list.append(start_node)
 
-    # set a stop condition to prevent an infinite loop or to stop execution after a reasonable number of steps
-    outer_iterations = 0
-    max_iterations = (len(maze) // 2) ** 10
-
-    # define allowed movements
     moves = [
-        [-1, 0],  # Move up
-        [0, -1],  # Move left
-        [1, 0],   # Move down
-        [0, 1]    # Move right
+        [0, -1],  # move left
+        [0, 1],  # move right
+        [-1, 0],  # move up
+        [1, 0]  # move down
     ]
 
-    # find the number of rows and columns in the maze
-    n_rows, n_columns = len(maze), len(maze[0])
-
-    # loop until end point is reached
-    while len(yet_to_visit_list) > 0:
-        # every time a node is referred to from yet_to_visit list, increment number of operations
-        outer_iterations += 1
-
-        # get the current node
-        current_node = yet_to_visit_list[0]
+    while open_list:
+        current_node = open_list[0]
         current_index = 0
-        for index, item in enumerate(yet_to_visit_list):
-            if item.f < current_node.f:
-                current_node = item
+
+        remaining_iterations -= 1
+
+        for index, new_node in enumerate(open_list):
+            if new_node.f < current_node.f:
+                current_node = new_node
                 current_index = index
 
-        # if we hit this point, return path as computation cost is too high
-        if outer_iterations > max_iterations:
-            return return_path(current_node, maze)
+        if current_node in closed_list:  # additional check for if path is stuck in loop
+            num_dead_ends += 1
 
-        # pop current node from yet_to_visit list, add to visited list
-        yet_to_visit_list.pop(current_index)
-        visited_list.append(current_node)
+        if remaining_iterations == 0 or num_dead_ends >= max_num_dead_ends:
+            break
 
-        # test if goal is reached, if yes, return path
+        open_list.pop(current_index)
+        closed_list.append(current_node)
+
         if current_node == end_node:
-            return return_path(current_node, maze)
+            path = list()
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
 
-        # generate children from all adjacent squares
-        children = []
+            return path[::-1], len(path[::-1])
 
-        for new_position in moves:
-            # get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+        children = list()
 
-            # make sure position is within map
-            if node_position[0] > n_rows - 1 or node_position[0] < 0 or node_position[1] > n_columns - 1 or node_position[1] < 0:
+        for move in moves:
+            # check if move is valid
+            new_position = (current_node.position[0] + move[0], current_node.position[1] + move[1])
+            # print(f"X Pos: {new_position[1]}, Y Pos: {new_position[0]}.")
+
+            if not 0 <= new_position[0] <= n_rows - 1 or not 0 <= new_position[1] <= n_cols - 1:
                 continue
 
-            # make sure node is not in a wall
-            if maze[node_position[0]][node_position[1]] != 0:
+            if maze[new_position[0]][new_position[1]] != 0:
                 continue
 
-            # create new node
-            new_node = Node(current_node, node_position)
+            # if move valid in maze and  not wall, create node
+            child_node = Node(current_node, new_position)
 
-            # append
-            children.append(new_node)
+            # add to children
+            children.append(child_node)
 
-            # loop through children
-            for child in children:
-                # if child is in visited list
-                if len([visited_child for visited_child in visited_list if visited_child == child]) > 0:
+        for child_node in children:
+            if child_node in closed_list:
+                continue
+
+            child_node.g = current_node.g + 1
+            child_node.h = ((child_node.position[0] - end_node.position[0]) ** 2) + ((child_node.position[1] - end_node.position[1]) ** 2)
+            child_node.f = child_node.g + child_node.h
+
+            for node in open_list:
+                if child_node == node and child_node.g > node.g:
                     continue
 
-                # create the g, h and f values
-                child.g = current_node.g + cost
+            open_list.append(child_node)
 
-                # calculate heuristic cost using euclidean distance
-                child.h = (((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2))
 
-                child.f = child.g + child.h
+def destroy_wall(maze):
+    try:
+        path, path_length = search(maze)
+    except TypeError:
+        path = list()
+        path_length = len(maze) ** 2 + 1
 
-                # if child already in yet_to_visit list and the g cost is lower
-                if len([i for i in yet_to_visit_list if child == i and child.g > i.g]) > 0:
-                    continue
+    new_map = copy.deepcopy(maze)
+    # print(f"New Map: {new_map}\n")
 
-                # add child to yet_to_visit_list
-                yet_to_visit_list.append(child)
+    cumulative_equivalent = 0
+
+    for y, row in enumerate(new_map):
+        if cumulative_equivalent == 5:
+            break
+
+        for x, col in enumerate(row):
+            if cumulative_equivalent == 5:
+                break
+
+            if new_map[y][x] == 1:
+                new_map[y][x] = 0
+                # print(f"X = {x}, Y = {y}, New Map:      {new_map}")
+                try:
+                    updated_path, updated_path_length = search(new_map)
+                except TypeError:
+                    updated_path = list()
+                    updated_path_length = len(maze) ** 2 + 1
+                new_map[y][x] = 1
+                # print(f"X = {x}, Y = {y}, Reverted Map: {new_map}\n")
+
+                if updated_path_length < path_length:
+                    path_length = updated_path_length
+                    path = updated_path
+
+    return path, path_length
+
+
+def test_algorithm(maze, start, end):
+    print(f"Start Point: {tuple(start)}.")
+    print(f"End Point: {tuple(end)}.")
+    print(f"Maze: {maze}")
+
+    start_time = time.time()
+    resultant_path, path_length = destroy_wall(maze)  # change func to (not) remove wall
+    end_time = time.time()
+
+    print(f"Time taken to execute: {end_time - start_time}s")
+
+    print(f"Resulting path coordinates: {resultant_path}")
+
+    print(f"Cost: {path_length}")
+
+    print(f"Type: {type(path_length)}")
+
+    print("Original maze:")
+
+    for y, row in enumerate(maze):
+        print("")
+
+        for x, column in enumerate(row):
+            if (y, x) == tuple(start):
+                print('SS', end="")
+            elif (y, x) == tuple(end):
+                print('EE', end="")
+            elif maze[y][x] == 1:
+                print(u"\u2588" * 2, end="")
+            else:
+                print("[]", end="")
+
+    print("\n")
+
+    print("Solved maze:")
+
+    for y, row in enumerate(maze):
+        print("")
+
+        for x, column in enumerate(row):
+            if (y, x) == tuple(start):
+                print('SS', end="")
+            elif (y, x) == tuple(end):
+                print('EE', end="")
+            elif (y, x) in resultant_path:
+                print('MV', end="")
+            elif maze[y][x] == 1:
+                print(u"\u2588" * 2, end="")
+            else:
+                print("[]", end="")
+
+    print("\n")
 
 
 if __name__ == '__main__':
-    maze = [
+
+    main_start_time = time.time()
+
+    test_maze_1 = [
         [0, 1, 1, 0],
         [0, 0, 0, 1],
         [1, 1, 0, 0],
         [1, 1, 1, 0]
     ]
 
-    start = [0, 0]
-    end = [3, 3]
-    cost = 1  # per movement
+    start_point = [0, 0]
+    end_point = [len(test_maze_1) - 1, len(test_maze_1[0]) - 1]
 
-    path = search(maze, cost, start, end)
+    test_algorithm(test_maze_1, start_point, end_point)
 
-    print('\n'.join([''.join(["{:" ">3d}".format(item) for item in row]) for row in path]))
+    test_maze_2 = [
+        [0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0]
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_2) - 1, len(test_maze_2[0]) - 1]
+
+    test_algorithm(test_maze_2, start_point, end_point)
+
+    test_maze_3 = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_3) - 1, len(test_maze_3[0]) - 1]
+
+    test_algorithm(test_maze_3, start_point, end_point)
+
+    test_maze_4 = [
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_4) - 1, len(test_maze_4[0]) - 1]
+
+    test_algorithm(test_maze_4, start_point, end_point)
+
+    test_maze_5 = [
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+        [1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+        [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1],
+        [0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+        [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_5) - 1, len(test_maze_5[0]) - 1]
+
+    test_algorithm(test_maze_5, start_point, end_point)
+
+    main_end_time = time.time()
+
+    print(f"Total runtime: {main_end_time - main_start_time}s")
