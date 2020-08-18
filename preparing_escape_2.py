@@ -54,7 +54,7 @@ def search(maze):
                 current_index = index
 
         if remaining_iterations == 0:
-            break
+            break  # return current path or 0 and None
 
         open_list.pop(current_index)
         closed_list.append(current_node)
@@ -208,3 +208,17 @@ if __name__ == '__main__':
     end_point = [len(test_maze_4) - 1, len(test_maze_4[0]) - 1]
 
     test_algorithm(test_maze_4, start_point, end_point)
+
+    test_maze_5 = [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0]
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_5) - 1, len(test_maze_5[0]) - 1]
+
+    test_algorithm(test_maze_5, start_point, end_point)
