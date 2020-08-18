@@ -54,7 +54,14 @@ def search(maze):
                 current_index = index
 
         if remaining_iterations == 0:
-            break  # return current path or 0 and None
+            path = list()
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            print(path[::-1])
+
+            return path[::-1], len(path[::-1])
 
         open_list.pop(current_index)
         closed_list.append(current_node)
