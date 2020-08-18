@@ -149,7 +149,6 @@ def destroy_wall(maze):
 def test_algorithm(maze, start, end):
     print(f"Start Point: {tuple(start)}.")
     print(f"End Point: {tuple(end)}.")
-    print(f"Maze: {maze}")
 
     start_time = time.time()
     resultant_path, path_length = destroy_wall(maze)  # change func to (not) remove wall
