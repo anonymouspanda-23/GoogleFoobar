@@ -163,6 +163,25 @@ def test_algorithm(maze, start, end):
 
     print(f"Type: {type(path_length)}")
 
+    print("Original maze:")
+
+    for y, row in enumerate(maze):
+        print("")
+
+        for x, column in enumerate(row):
+            if (y, x) == tuple(start):
+                print('SS', end="")
+            elif (y, x) == tuple(end):
+                print('EE', end="")
+            elif maze[y][x] == 1:
+                print(u"\u2588" * 2, end="")
+            else:
+                print("[]", end="")
+
+    print("\n")
+
+    print("Solved maze:")
+
     for y, row in enumerate(maze):
         print("")
 
