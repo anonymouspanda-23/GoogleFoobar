@@ -1,3 +1,5 @@
+import time
+
 """
 Sample Prison Layout:
 
@@ -9,26 +11,27 @@ Sample Prison Layout:
 
 """
 
-def formula_x(y_coords):
-    return 2 * y_coords - 1
 
+def solution(x, y):
+    # Your code here
+    def formula_x(y_coords):
+        return 2 * y_coords - 1
 
-def formula_y(y_coords):
-    return (y_coords * (y_coords - 1)) / 2
+    def formula_y(y_coords):
+        return (y_coords * (y_coords - 1)) / 2
 
+    prisoner_id = (((x ** 2) + (formula_x(y) * x)) / 2) + formula_y(y - 1)
+    prisoner_id = int(prisoner_id)
 
-def cell_id(coordinates):
-    x, y = coordinates
-    id = (((x ** 2) + (formula_x(y) * x)) / 2) + formula_y(y - 1)
-
-    print(f"ID of prisoner at {x}, {y} is {id}.")
-    # print(f"X number is {formula_x(y)}.")
-    # print(f"Added number is {formula_y(y - 1)}.")
-    # print("\n")
+    return str(prisoner_id)
 
 
 if __name__ == '__main__':
-    cell_id((1, 1))
-    cell_id((2, 1))
-    cell_id((2, 4))
-    cell_id((5, 5))
+    start_time = time.time()
+    solution(3, 2)
+    solution(5, 10)
+    solution(2, 4)
+    print(solution(13975013750179, 310470147037150))
+    end_time = time.time()
+
+    print(f"Time taken: {end_time - start_time}s.")
