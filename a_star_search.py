@@ -1,3 +1,4 @@
+import copy
 import time
 
 
@@ -45,18 +46,11 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
         start_pos = (0, 0)
 
     if not end_pos:
-        end_pos = (len(maze) - 1, len(maze[n_rows - 1]) - 1)
-
-    # print start and end coordinates to ensure calculations are working
-    print(f"Start location: {start_pos}")
-    print(f"End location: {end_pos}")
+        end_pos = (n_rows - 1, n_cols - 1)
 
     # define the maximum number of iterations before exiting
     max_iter = (n_rows * n_cols) ** 2  # maybe max_iter can be reduced to (n_rows ** n_cols)
     current_iter = 0
-
-    # declare the maximum allowable length if not break (number of tiles)
-    max_path_len = n_cols * n_rows
 
     # initialize start and end nodes
     start_node = Node(None, start_pos)
@@ -82,17 +76,13 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
     # while nodes available in open_list to expand
     while open_list:
-        print(f"Open List: {[node.position for node in open_list]}")
-        print(f"Closed List: {[node.position for node in closed_list]}")
-        input("Press enter to continue.")
         
         # get 1 node from list
-        # todo: add check that node is not in closed_list
         current_node = open_list[0]
         current_index = 0
 
         # check if current iteration has reached iteration limit
-        if current_iter >= max_iter or max_path_len <= 0:
+        if current_iter >= max_iter:
             return return_path(False, current_node)
 
         # increment current iteration
@@ -110,20 +100,6 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
         # remove current node from open_list and add it to closed_list
         open_list.pop(current_index)
         closed_list.append(current_node)
-
-        # remove all nodes in open_list with f length greater than max_path_len
-        to_remove = []
-        
-        for node in open_list:
-            if node.f > max_path_len:
-                to_remove.append(node)
-
-        for node in to_remove:
-            open_list.remove(node)
-            closed_list.append(node)
-
-        # update max_path_len
-        # max_path_len -= 1
 
         # create list to store new valid nodes expanded from current node
         children = []
@@ -159,16 +135,93 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
             child_node.h = abs((end_node.position[0] - child_node.position[0]) + (end_node.position[1] - child_node.position[1]))
             child_node.f = child_node.g + child_node.h
 
-            # check if child_node exists in open_list and if it does, check if it is more efficient going this way
-            if child_node in open_list:
-                for index, node in enumerate(open_list):
-                    if child_node == node and child_node.g < node.g:
-                        open_list.pop(index)
-            
-            open_list.append(child_node)
+            for node in open_list:
+                if child_node == node and child_node.g < node.g:
+                    node.g = child_node.g
+                    node.h = child_node.h
+                    node.f = child_node.f
 
-    print("No more possible paths found. Exiting...")
+                    node.parent = child_node.parent
+
+            if child_node not in open_list:
+                open_list.append(child_node)
+
     return return_path(False, current_node)
+
+
+def destroy_wall(maze):
+    solvable, resultant_path = a_star_search(maze)
+    maze_copy = copy.deepcopy(maze)
+    path_length = len(resultant_path)
+
+    for y, row in enumerate(maze_copy):
+        for x, col in enumerate(row):
+
+            if maze_copy[y][x] == 1:
+                maze_copy[y][x] = 0
+                new_solvable, new_resultant_path = a_star_search(maze_copy)
+                new_path_length = len(new_resultant_path)
+                maze_copy[y][x] = 1
+
+                if solvable and new_solvable and new_path_length < path_length:
+                    path_length = new_path_length
+                    resultant_path = new_resultant_path
+
+                elif not solvable and new_solvable:
+                    path_length = new_path_length
+                    resultant_path = new_resultant_path
+                    solvable = new_solvable
+
+                elif solvable and not new_solvable:
+                    continue
+
+                else:  # if maze is unsolvable with or without removing wall
+                    continue
+
+    return solvable, resultant_path
+
+
+def test_algorithm(maze):
+    n_rows = len(maze)
+    n_cols = len(maze[n_rows - 1])
+
+    start_pos = (0, 0)
+    end_pos = (n_rows - 1, n_cols - 1)
+
+    print(f"Start Point: {tuple(start_pos)}.")
+    print(f"End Point: {tuple(end_pos)}.")
+
+    start_time = time.time()
+    # solvable, resultant_path = a_star_search(maze)  # function to search without removing a wall
+    solvable, resultant_path = destroy_wall(maze)  # function to search with ability to remove 1 wall
+    end_time = time.time()
+
+    print(f"Time taken to execute: {end_time - start_time}s")
+
+    print(f"Resulting path coordinates: {resultant_path}")
+
+    print(f"Cost: {len(resultant_path)}")
+
+    print("\n")
+
+    print("Solved maze:") if solvable else print("Partially solved maze:")
+
+    for y, row in enumerate(maze):
+        print("")
+
+        for x, column in enumerate(row):
+            if (y, x) == tuple(start_pos):
+                print('SS', end="")
+            elif (y, x) == tuple(end_pos):
+                print('EE', end="")
+            elif (y, x) in resultant_path:
+                print('MV', end="")
+            elif maze[y][x] == 1:
+                print(u"\u2588" * 2, end="")
+            else:
+                print("[]", end="")
+
+    print("\n")
 
 
 if __name__ == '__main__':
@@ -182,18 +235,7 @@ if __name__ == '__main__':
         [1, 1, 1, 0]
     ]
 
-    maze_1_start = time.time()
-    solvable, path = a_star_search(test_maze_1)
-    maze_1_end = time.time()
-    print(f"Time to solve maze 1: {maze_1_end - maze_1_start}s")
-    
-    if solvable:
-        print(f"Maze 1: {path}")
-    else:
-        print("Maze 1 is unsolvable")
-        print(f"Partial path: {path}")
-
-    print("")
+    test_algorithm(test_maze_1)
 
     test_maze_2 = [
         [0, 0, 0, 0, 0, 0],
@@ -204,18 +246,7 @@ if __name__ == '__main__':
         [0, 0, 0, 0, 0, 0]
     ]
 
-    maze_2_start = time.time()
-    solvable, path = a_star_search(test_maze_2)
-    maze_2_end = time.time()
-    print(f"Time to solve maze 2: {maze_2_end - maze_2_start}s")
-    
-    if solvable:
-        print(f"Maze 2: {path}")
-    else:
-        print("Maze 2 is unsolvable")
-        print(f"Partial path: {path}")
-
-    print("")
+    test_algorithm(test_maze_2)
 
     test_maze_3 = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -236,16 +267,7 @@ if __name__ == '__main__':
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
 
-    maze_3_start = time.time()
-    solvable, path = a_star_search(test_maze_3)
-    maze_3_end = time.time()
-    print(f"Time to solve maze 3: {maze_3_end - maze_3_start}s")
-    
-    if solvable:
-        print(f"Maze 3: {path}")
-    else:
-        print("Maze 3 is unsolvable")
-        print(f"Partial path: {path}")
+    test_algorithm(test_maze_3)
 
     print("")
 
@@ -267,16 +289,7 @@ if __name__ == '__main__':
         [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]
     ]
 
-    maze_4_start = time.time()
-    solvable, path = a_star_search(test_maze_4)
-    maze_4_end = time.time()
-    print(f"Time to solve maze 4: {maze_4_end - maze_4_start}s")
-    
-    if solvable:
-        print(f"Maze 4: {path}")
-    else:
-        print("Maze 4 is unsolvable")
-        print(f"Partial path: {path}")
+    test_algorithm(test_maze_4)
 
     print("")
 
@@ -303,18 +316,8 @@ if __name__ == '__main__':
         [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     ]
 
-    maze_5_start = time.time()
-    solvable, path = a_star_search(test_maze_5)
-    maze_5_end = time.time()
-    print(f"Time to solve maze 5: {maze_5_end - maze_5_start}s")
-    
-    if solvable:
-        print(f"Maze 5: {path}")
-    else:
-        print("Maze 5 is unsolvable")
-        print(f"Partial path: {path}")
+    test_algorithm(test_maze_5)
 
     main_end_time = time.time()
 
     print(f"Total runtime: {main_end_time - main_start_time}s")
-
