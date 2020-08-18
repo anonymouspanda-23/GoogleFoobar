@@ -25,7 +25,10 @@ def search(maze):
     start = [0, 0]
     end = [n_rows - 1, n_cols - 1]
 
-    remaining_iterations = (len(maze) // 2) ** 10
+    remaining_iterations = (len(maze) // 2) ** 5
+
+    num_dead_ends = 0
+    max_num_dead_ends = len(maze)
 
     start_node = Node(None, tuple(start))
     start_node.g = start_node.h = start_node.f = 0
@@ -37,9 +40,9 @@ def search(maze):
 
     moves = [
         [0, -1],  # move left
-        [0, 1],   # move right
+        [0, 1],  # move right
         [-1, 0],  # move up
-        [1, 0]    # move down
+        [1, 0]  # move down
     ]
 
     while open_list:
@@ -53,15 +56,11 @@ def search(maze):
                 current_node = new_node
                 current_index = index
 
-        if remaining_iterations == 0:
-            path = list()
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            print(path[::-1])
+        if current_node in closed_list:  # additional check for if path is stuck in loop
+            num_dead_ends += 1
 
-            return path[::-1], len(path[::-1])
+        if remaining_iterations == 0 or num_dead_ends >= max_num_dead_ends:
+            break
 
         open_list.pop(current_index)
         closed_list.append(current_node)
@@ -110,16 +109,33 @@ def search(maze):
 
 
 def destroy_wall(maze):
-    path, path_length = search(maze)
+    try:
+        path, path_length = search(maze)
+    except TypeError:
+        path = list()
+        path_length = len(maze) ** 2 + 1
+
     new_map = copy.deepcopy(maze)
     # print(f"New Map: {new_map}\n")
 
+    cumulative_equivalent = 0
+
     for y, row in enumerate(new_map):
+        if cumulative_equivalent == 5:
+            break
+
         for x, col in enumerate(row):
+            if cumulative_equivalent == 5:
+                break
+
             if new_map[y][x] == 1:
                 new_map[y][x] = 0
                 # print(f"X = {x}, Y = {y}, New Map:      {new_map}")
-                updated_path, updated_path_length = search(new_map)
+                try:
+                    updated_path, updated_path_length = search(new_map)
+                except TypeError:
+                    updated_path = list()
+                    updated_path_length = len(maze) ** 2 + 1
                 new_map[y][x] = 1
                 # print(f"X = {x}, Y = {y}, Reverted Map: {new_map}\n")
 
@@ -136,7 +152,7 @@ def test_algorithm(maze, start, end):
     print(f"Maze: {maze}")
 
     start_time = time.time()
-    resultant_path, path_length = destroy_wall(maze)
+    resultant_path, path_length = destroy_wall(maze)  # change func to (not) remove wall
     end_time = time.time()
 
     print(f"Time taken to execute: {end_time - start_time}s")
@@ -167,11 +183,27 @@ def test_algorithm(maze, start, end):
 
 if __name__ == '__main__':
 
-    test_maze_2 = [
+    main_start_time = time.time()
+
+    test_maze_1 = [
         [0, 1, 1, 0],
         [0, 0, 0, 1],
         [1, 1, 0, 0],
         [1, 1, 1, 0]
+    ]
+
+    start_point = [0, 0]
+    end_point = [len(test_maze_1) - 1, len(test_maze_1[0]) - 1]
+
+    test_algorithm(test_maze_1, start_point, end_point)
+
+    test_maze_2 = [
+        [0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0]
     ]
 
     start_point = [0, 0]
@@ -180,12 +212,22 @@ if __name__ == '__main__':
     test_algorithm(test_maze_2, start_point, end_point)
 
     test_maze_3 = [
-        [0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0]
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
 
     start_point = [0, 0]
@@ -217,15 +259,33 @@ if __name__ == '__main__':
     test_algorithm(test_maze_4, start_point, end_point)
 
     test_maze_5 = [
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0]
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+        [1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+        [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1],
+        [0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+        [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     ]
 
     start_point = [0, 0]
     end_point = [len(test_maze_5) - 1, len(test_maze_5[0]) - 1]
 
     test_algorithm(test_maze_5, start_point, end_point)
+
+    main_end_time = time.time()
+
+    print(f"Total runtime: {main_end_time - main_start_time}s")
