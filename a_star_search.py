@@ -82,6 +82,10 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
     # while nodes available in open_list to expand
     while open_list:
+        print(f"Open List: {[node.position for node in open_list]}")
+        print(f"Closed List: {[node.position for node in closed_list]}")
+        input("Press enter to continue.")
+        
         # get 1 node from list
         # todo: add check that node is not in closed_list
         current_node = open_list[0]
@@ -108,15 +112,15 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
         closed_list.append(current_node)
 
         # remove all nodes in open_list with f length greater than max_path_len
-        # to_remove = []
+        to_remove = []
         
-        # for node in open_list:
-        #     if node.f > max_path_len:
-        #         to_remove.append(node)
+        for node in open_list:
+            if node.f > max_path_len:
+                to_remove.append(node)
 
-        # for node in to_remove:
-        #     open_list.remove(node)
-        #     closed_list.append(node)
+        for node in to_remove:
+            open_list.remove(node)
+            closed_list.append(node)
 
         # update max_path_len
         # max_path_len -= 1
@@ -169,14 +173,20 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
 if __name__ == '__main__':
 
-    maze_1 = [
+    main_start_time = time.time()
+
+    test_maze_1 = [
         [0, 1, 1, 0],
         [0, 0, 0, 1],
         [1, 1, 0, 0],
-        [0, 0, 0, 0]
+        [1, 1, 1, 0]
     ]
 
-    solvable, path = a_star_search(maze_1)
+    maze_1_start = time.time()
+    solvable, path = a_star_search(test_maze_1)
+    maze_1_end = time.time()
+    print(f"Time to solve maze 1: {maze_1_end - maze_1_start}s")
+    
     if solvable:
         print(f"Maze 1: {path}")
     else:
@@ -185,14 +195,20 @@ if __name__ == '__main__':
 
     print("")
 
-    maze_2 = [
-        [0, 1, 1, 0],
-        [0, 0, 0, 1],
-        [1, 1, 0, 0],
-        [0, 1, 1, 0]
+    test_maze_2 = [
+        [0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0]
     ]
 
-    solvable, path = a_star_search(maze_2)
+    maze_2_start = time.time()
+    solvable, path = a_star_search(test_maze_2)
+    maze_2_end = time.time()
+    print(f"Time to solve maze 2: {maze_2_end - maze_2_start}s")
+    
     if solvable:
         print(f"Maze 2: {path}")
     else:
@@ -201,16 +217,104 @@ if __name__ == '__main__':
 
     print("")
 
-    maze_3 = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0]
+    test_maze_3 = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
 
-    solvable, path = a_star_search(maze_3)
+    maze_3_start = time.time()
+    solvable, path = a_star_search(test_maze_3)
+    maze_3_end = time.time()
+    print(f"Time to solve maze 3: {maze_3_end - maze_3_start}s")
+    
     if solvable:
         print(f"Maze 3: {path}")
     else:
         print("Maze 3 is unsolvable")
         print(f"Partial path: {path}")
+
+    print("")
+
+    test_maze_4 = [
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0]
+    ]
+
+    maze_4_start = time.time()
+    solvable, path = a_star_search(test_maze_4)
+    maze_4_end = time.time()
+    print(f"Time to solve maze 4: {maze_4_end - maze_4_start}s")
+    
+    if solvable:
+        print(f"Maze 4: {path}")
+    else:
+        print("Maze 4 is unsolvable")
+        print(f"Partial path: {path}")
+
+    print("")
+
+    test_maze_5 = [
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+        [1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+        [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1],
+        [0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+        [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    ]
+
+    maze_5_start = time.time()
+    solvable, path = a_star_search(test_maze_5)
+    maze_5_end = time.time()
+    print(f"Time to solve maze 5: {maze_5_end - maze_5_start}s")
+    
+    if solvable:
+        print(f"Maze 5: {path}")
+    else:
+        print("Maze 5 is unsolvable")
+        print(f"Partial path: {path}")
+
+    main_end_time = time.time()
+
+    print(f"Total runtime: {main_end_time - main_start_time}s")
+
