@@ -3,13 +3,14 @@ import time
 
 
 class Node:
-    def __init__(self, parent, position):
+    def __init__(self, parent, position):  # todo: add attribute of wall_broken
         self.g = 0
         self.h = 0
         self.f = 0
 
         self.parent = parent
         self.position = position
+        # self.wall_broken = wall_broken
 
     def __eq__(self, other):
         return self.position == other.position
@@ -73,6 +74,9 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
         [0, -1],  # move left
         [0, 1]   # move right
     ]
+
+    # initialise current_node
+    current_node = None
 
     # while nodes available in open_list to expand
     while open_list:
@@ -149,7 +153,7 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
     return return_path(False, current_node)
 
 
-def destroy_wall(maze):
+def destroy_wall(maze):  # todo: try to optimize -> https://stackoverflow.com/questions/2489672/removing-the-obstacle-that-yields-the-best-path-from-a-map-after-a-traversal
     solvable, resultant_path = a_star_search(maze)
     maze_copy = copy.deepcopy(maze)
     path_length = len(resultant_path)
