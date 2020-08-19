@@ -10,10 +10,13 @@ class Node:
 
         self.parent = parent
         self.position = position
-        # self.wall_broken = wall_broken
+        self.wall_broken = False
 
     def __eq__(self, other):
         return self.position == other.position
+
+    def __repr__(self):
+        return str(self.position) + str({self.f})
 
 
 def return_path(solvable, current_node):
@@ -29,9 +32,9 @@ def return_path(solvable, current_node):
     return [solvable, path]
 
 
-def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
+def astar(maze, start_pos=tuple(), end_pos=tuple()):
     """
-    a_star_search function attempts to look for a path, returns unsolvable as True if there is no possible path to end state
+    astar function attempts to look for a path, returns solvable as False if there is no possible path to end state
     :param maze:
     :param start_pos:
     :param end_pos:
@@ -80,6 +83,11 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
     # while nodes available in open_list to expand
     while open_list:
+
+        print(f"Current Open List: {open_list}")
+        print(f"Current Closed List: {closed_list}")
+        print(f"Current Node: {current_node}")
+        input("\n")
         
         # get 1 node from list
         current_node = open_list[0]
@@ -94,7 +102,7 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
         # use current node to get optimal node
         for index, node in enumerate(open_list):
-            if node.f < current_node.f:
+            if node.f < current_node.f:  # use h cost
                 current_node = node
                 current_index = index
 
@@ -114,25 +122,30 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
             # create child position
             child_position = (current_node.position[0] + move[0], current_node.position[1] + move[1])
 
+            # create child_node
+            child_node = Node(current_node, child_position)
+            child_node.wall_broken = current_node.wall_broken
+
             # check if child position is in maze
             if not 0 <= child_position[0] <= n_rows - 1 or not 0 <= child_position[1] <= n_cols - 1:
                 continue
 
             # check if child position is not in wall
             if maze[child_position[0]][child_position[1]] != 0:
-                continue
-
-            # create child_node
-            child_node = Node(current_node, child_position)
+                if current_node.wall_broken:
+                    continue
+                else:
+                    child_node.wall_broken = True
 
             # add child_node to list of child nodes
-            children.append(child_node)
+            if child_node not in closed_list:
+                children.append(child_node)
 
         for child_node in children:
 
             # check if child_node is in closed_list
-            if child_node in closed_list:
-                continue
+            # if child_node in closed_list:
+            #     continue
 
             # calculate child_node g, h and f values
             child_node.g = current_node.g + 1
@@ -146,6 +159,7 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
                     node.f = child_node.f
 
                     node.parent = child_node.parent
+                    node.wall_broken = child_node.wall_broken
 
             if child_node not in open_list:
                 open_list.append(child_node)
@@ -154,7 +168,7 @@ def a_star_search(maze, start_pos=tuple(), end_pos=tuple()):
 
 
 def destroy_wall(maze):  # todo: try to optimize -> https://stackoverflow.com/questions/2489672/removing-the-obstacle-that-yields-the-best-path-from-a-map-after-a-traversal
-    solvable, resultant_path = a_star_search(maze)
+    solvable, resultant_path = astar(maze)
     maze_copy = copy.deepcopy(maze)
     path_length = len(resultant_path)
 
@@ -163,7 +177,7 @@ def destroy_wall(maze):  # todo: try to optimize -> https://stackoverflow.com/qu
 
             if maze_copy[y][x] == 1:
                 maze_copy[y][x] = 0
-                new_solvable, new_resultant_path = a_star_search(maze_copy)
+                new_solvable, new_resultant_path = astar(maze_copy)
                 new_path_length = len(new_resultant_path)
                 maze_copy[y][x] = 1
 
@@ -196,8 +210,8 @@ def test_algorithm(maze):
     print(f"End Point: {tuple(end_pos)}.")
 
     start_time = time.time()
-    # solvable, resultant_path = a_star_search(maze)  # function to search without removing a wall
-    solvable, resultant_path = destroy_wall(maze)  # function to search with ability to remove 1 wall
+    solvable, resultant_path = astar(maze)  # function to search without removing a wall
+    # solvable, resultant_path = destroy_wall(maze)  # function to search with ability to remove 1 wall
     end_time = time.time()
 
     print(f"Time taken to execute: {end_time - start_time}s")
