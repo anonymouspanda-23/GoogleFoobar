@@ -1,400 +1,167 @@
-from __future__ import division
-import time
-from fractions import Fraction, gcd
-from itertools import starmap, compress
-from operator import mul
+from fractions import gcd
+from fractions import Fraction
 
 
-def convert_matrix(matrix):  # convert to transition matrix
-    new_matrix = []
-    for index, row in enumerate(matrix):
-        new_row = []
-        row_total = sum(row)
+def multiply_matrices(a, b):
+    # confirm dimensions
+    a_rows = len(a)
+    a_cols = len(a[0])
+    b_cols = len(b[0])
+    rows = a_rows
+    cols = b_cols
+    # create the result matrix c = a*b
+    c = make_2d_list(rows, cols)
+    # now find each value in turn in the result matrix
+    for row in range(rows):
+        for col in range(cols):
+            dot_product = Fraction(0, 1)
+            for i in range(a_cols):
+                dot_product += a[row][i]*b[i][col]
+            c[row][col] = dot_product
+    return c
 
-        if row_total > 0:
-            for value in row:
-                if value == 0:
-                    new_row.append(0)
-                else:
-                    new_row.append(Fraction(value, row_total))
 
+def multiply_row_of_square_matrix(m, row, k):
+    n = len(m)
+    row_operator = make_identity(n)
+    row_operator[row][row] = k
+    return multiply_matrices(row_operator, m)
+
+
+def make_2d_list(rows, cols):
+    a = []
+    for row in range(rows):
+        a += [[0] * cols]
+    return a
+
+
+def make_identity(n):
+    result = make_2d_list(n, n)
+    for i in range(n):
+        result[i][i] = Fraction(1, 1)
+    return result
+
+
+def add_multiple_of_row_of_square_matrix(m, source_row, k, target_row):
+    # add k * source_row to target_row of matrix m
+    n = len(m)
+    row_operator = make_identity(n)
+    row_operator[target_row][source_row] = k
+    return multiply_matrices(row_operator, m)
+
+
+def invert_matrix(m):
+    n = len(m)
+    assert(len(m) == len(m[0]))
+    inverse = make_identity(n)
+    for col in range(n):
+        diagonal_row = col
+        assert(m[diagonal_row][col] != 0)
+        k = Fraction(1, m[diagonal_row][col])
+        m = multiply_row_of_square_matrix(m, diagonal_row, k)
+        inverse = multiply_row_of_square_matrix(inverse, diagonal_row, k)
+        source_row = diagonal_row
+        for target_row in range(n):
+            if source_row != target_row:
+                k = -m[target_row][col]
+                m = add_multiple_of_row_of_square_matrix(m, source_row, k, target_row)
+                inverse = add_multiple_of_row_of_square_matrix(inverse, source_row, k, target_row)
+    # that's it!
+    return inverse
+
+
+def subtract_identity(q, denominator):
+    size = range(len(q))
+    for i in size:
+        for j in size:
+            if i == j:
+                q[i][j] = denominator - q[i][j]
+            else:
+                q[i][j] = - q[i][j]
+
+
+def transform_matrix(m):
+    for row_index, row in enumerate(m):
+        row_sum = sum(m[row_index])
+        if row_sum == 0:
+            m[row_index][row_index] = 1
         else:
-            for i in range(len(row)):
-                if i == index:
-                    new_row.append(1)
-                else:
-                    new_row.append(0)
+            for col_index, col in enumerate(row):
+                m[row_index][col_index] = Fraction(col, row_sum)
 
-        new_matrix.append(new_row)
+
+def get_submatrix(m, rows, cols):
+    new_matrix = []
+
+    for row in rows:
+        current_row = []
+        for col in cols:
+            current_row.append(m[row][col])
+        new_matrix.append(current_row)
+    return new_matrix
+
+
+def get_q(m, non_terminal_states):
+    return get_submatrix(m, non_terminal_states, non_terminal_states)
+
+
+def get_r(m, non_terminal_states, terminal_states):
+    return get_submatrix(m, non_terminal_states, terminal_states)
+
+
+def subtract_matrices(a, b):
+    new_matrix = []
+    for row_index, row in enumerate(a):
+        column = []
+        for col_index, col in enumerate(row):
+            column.append(a[row_index][col_index] - b[row_index][col_index])
+        new_matrix.append(column)
 
     return new_matrix
 
 
-def progress_state(state_matrix, transition_matrix):  # for matrix multiplication
-    return [sum(starmap(mul, zip(state_matrix, col))) for col in zip(*transition_matrix)]
+def lcm(a, b):
+    result = a * b / gcd(a, b)
+
+    return result
 
 
-def get_lcm(values):  # for getting common denominator
-    lcm = values[0]
-    for i in values[1:]:
-        lcm = lcm * i / int(gcd(lcm, i))
-        lcm = lcm
+def lcm_for_arrays(args):
+    array_length = len(args)
+    if array_length <= 2:
+        return lcm(*args)
 
-    return lcm
-
-
-def get_end_states(matrix):  # for finding out which are transient and which are absorbing states
-    states = []
-
-    for index, row in enumerate(matrix):
-        if sum(row) == 0:
-            states.append(True)
-        else:
-            states.append(False)
-
-    states.pop(0)
-    return states
-
-
-def solution(m):  # main calculations
-    if m == [[0]]:
-        return [1, 1]
-
-    states = get_end_states(m)
-    transition_matrix = convert_matrix(m)
-    state_matrix = [0] * len(transition_matrix)
-    state_matrix[0] = 1
-
-    for i in range(10):
-        state_matrix = progress_state(state_matrix, transition_matrix)
-
-        state_matrix[0] = 0
-
-        total = 0
-        for value in state_matrix:
-            total += value
-
-        for i, value in enumerate(state_matrix):
-            state_matrix[i] = value / total
-
-            # print(state_matrix)
-
-    state_matrix.pop(0)
-
-    total = 0
-    for value in state_matrix:
-        total += value
-
-    for i, value in enumerate(state_matrix):
-        state_matrix[i] = value / total
-
-    probabilities = []
-    denominators = []
-    for value in state_matrix:
-        probabilities.append((value.numerator, value.denominator))
-        denominators.append(value.denominator)
-
-    lcm = get_lcm(denominators)
-
-    results = []
-
-    for index, value in enumerate(probabilities):
-        numerator = value[0]
-        denominator = value[1]
-
-        if numerator == 0:
-            if states[index]:
-                results.append(0)
-
-        else:
-            if states[index]:
-                multiplier = lcm / denominator
-                numerator = int(numerator * multiplier)
-                results.append(numerator)
-
-    results.append(int(lcm))
-    return results
-
-
-def convertMatrix(transMatrix):
-    """Converts transition matrix values to floats representing probabilities."""
-    probMatrix = []
-
-    for i in range(len(transMatrix)):
-        row = transMatrix[i]
-        newRow = []
-        rowSum = sum(transMatrix[i])
-
-        if all([v == 0 for v in transMatrix[i]]):
-            for j in transMatrix[i]:
-                newRow.append(0)
-
-            newRow[i] = 1
-            probMatrix.append(newRow)
-
-        else:
-            for j in transMatrix[i]:
-
-                if j == 0:
-                    newRow.append(0)
-
-                else:
-                    newRow.append(j / rowSum)
-            probMatrix.append(newRow)
-
-    return probMatrix
-
-
-def terminalStateFilter(matrix):
-    """Determines terminal states"""
-    terminalStates = []
-
-    for row in range(len(matrix)):
-
-        if all(x == 0 for x in matrix[row]):
-            terminalStates.append(True)
-
-        else:
-            terminalStates.append(False)
-
-    return terminalStates
-
-
-def probDistributionVector(matrix, row, timesteps):
-    """Calculates the probability distribution vector for the given number of timesteps"""
-    vector = matrix[row]
-
-    for i in range(timesteps):
-        newVector = [sum(starmap(mul, zip(vector, col)))
-                     for col in zip(*matrix)]
-        vector = newVector
-
-    return vector
+    initial = lcm(args[0], args[1])
+    i = 2
+    while i < array_length:
+        initial = lcm(initial, args[i])
+        i += 1
+    return initial
 
 
 def answer(m):
-    if len(m) == 1:
+    terminal_states = []
+    non_terminal_states = []
+    for index, row in enumerate(m):
+        if sum(row) == 0:
+            terminal_states.append(index)
+        else:
+            non_terminal_states.append(index)
+
+    if len(terminal_states) == 1:
         return [1, 1]
 
-    probMatrix = convertMatrix(m)
-    terminalStates = terminalStateFilter(m)
-    probVector = probDistributionVector(probMatrix, 0, 100)
+    transform_matrix(m)
 
-    numerators = []
-    for i in probVector:
-        numerator = Fraction(i).limit_denominator().numerator
-        numerators.append(numerator)
+    q = get_q(m, non_terminal_states)
+    r = get_r(m, non_terminal_states, terminal_states)
 
-    denominators = []
-    for i in probVector:
-        denominator = Fraction(i).limit_denominator().denominator
-        denominators.append(denominator)
+    result = multiply_matrices(invert_matrix(subtract_matrices(make_identity(len(q)), q)), r)
 
-    factors = [max(denominators) / x for x in denominators]
-    numeratorsTimesFactors = [a * b for a, b in zip(numerators, factors)]
-    terminalStateNumerators = list(compress(numeratorsTimesFactors, terminalStates))
+    denominator = lcm_for_arrays([item.denominator for item in result[0]])
 
-    # append numerators and denominator to answerList
-    answerlist = []
-    for i in terminalStateNumerators:
-        answerlist.append(i)
-    answerlist.append(max(denominators))
+    result = [item.numerator * denominator / item.denominator for item in result[0]]
 
-    return list(map(int, answerlist))
+    result.append(denominator)
 
-
-if __name__ == '__main__':
-
-    main_start = time.time()
-
-    matrix_1 = [
-        [0, 1, 0, 0, 0, 1],
-        [4, 0, 0, 3, 2, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_1)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [0, 3, 2, 9, 14]))
-    end_time = time.time()
-
-    print("Matrix 1 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_2 = [
-        [0, 2, 1, 0, 0],
-        [0, 0, 0, 3, 4],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_2)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [7, 6, 8, 21]))
-    end_time = time.time()
-
-    print("Matrix 2 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_3 = [
-        [1, 2, 3, 0, 0, 0],
-        [4, 5, 6, 0, 0, 0],
-        [7, 8, 9, 1, 0, 0],
-        [0, 0, 0, 0, 1, 2],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_3)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [1, 2, 3]))
-    end_time = time.time()
-
-    print("Matrix 3 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_4 = [
-        [0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_4)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [1, 1]))
-    end_time = time.time()
-
-    print("Matrix 4 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_5 = [
-        [0, 0, 12, 0, 15, 0, 0, 0, 1, 8],
-        [0, 0, 60, 0, 0, 7, 13, 0, 0, 0],
-        [0, 15, 0, 8, 7, 0, 0, 1, 9, 0],
-        [23, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-        [37, 35, 0, 0, 0, 0, 3, 21, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_5)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [1, 2, 3, 4, 5, 15]))
-    end_time = time.time()
-
-    print("Matrix 5 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_6 = [
-        [0, 7, 0, 17, 0, 1, 0, 5, 0, 2],
-        [0, 0, 29, 0, 28, 0, 3, 0, 16, 0],
-        [0, 3, 0, 0, 0, 1, 0, 0, 0, 0],
-        [48, 0, 3, 0, 0, 0, 17, 0, 0, 0],
-        [0, 6, 0, 0, 0, 1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_6)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [4, 5, 5, 4, 2, 20]))
-    end_time = time.time()
-
-    print("Matrix 6 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_7 = [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_7)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [1, 1, 1, 1, 1, 5]))
-    end_time = time.time()
-
-    print("Matrix 7 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_8 = [
-        [1, 1, 1, 0, 1, 0, 1, 0, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 1, 1, 0, 1, 0, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 1, 1, 1, 0, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 1, 0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_8)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [2, 1, 1, 1, 1, 6]))
-    end_time = time.time()
-
-    print("Matrix 8 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_9 = [
-        [0, 86, 61, 189, 0, 18, 12, 33, 66, 39],
-        [0, 0, 2, 0, 0, 1, 0, 0, 0, 0],
-        [15, 187, 0, 0, 18, 23, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_9)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [6, 44, 4, 11, 22, 13, 100]))
-    end_time = time.time()
-
-    print("Matrix 9 time taken: " + str(end_time - start_time) + "s")
-
-    matrix_10 = [
-        [0, 0, 0, 0, 3, 5, 0, 0, 0, 2],
-        [0, 0, 4, 0, 0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 4, 4, 0, 0, 0, 1, 1],
-        [13, 0, 0, 0, 0, 0, 2, 0, 0, 0],
-        [0, 1, 8, 7, 0, 0, 0, 1, 3, 0],
-        [1, 7, 0, 0, 0, 0, 0, 2, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-
-    start_time = time.time()
-    result = solution(matrix_10)
-    print("Result: " + str(result))
-    print("Correct: " + str(result == [1, 1, 1, 2, 5]))
-    end_time = time.time()
-
-    print("Matrix 10 time taken: " + str(end_time - start_time) + "s")
-
-    main_end = time.time()
-
-    print("Total time taken: " + str(main_end - main_start) + "s")
+    return result
